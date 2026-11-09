@@ -1,4 +1,11 @@
-import { PrismaClient } from "@prisma/client";
-const g = globalThis as unknown as { prisma?: PrismaClient };
-export const db = g.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== "production") g.prisma = db;
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+
+export function getDb() {
+  const app =
+    getApps()[0] ??
+    initializeApp({
+      credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!)),
+    });
+  return getFirestore(app);
+}
