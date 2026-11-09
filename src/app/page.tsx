@@ -1,15 +1,19 @@
-import { db } from "@/lib/db";
+import { getDb } from "../lib/db";
 export const dynamic = "force-dynamic";
 
 const label: Record<string, string> = { draft: "Rascunho", published: "Publicado", error: "Com erro", paused: "Pausado" };
 
 export default async function Home() {
-  const [published, drafts, errors, recent] = await Promise.all([
-    db.listing.count({ where: { status: "published" } }),
-    db.listing.count({ where: { status: "draft" } }),
-    db.listing.count({ where: { status: "error" } }),
-    db.listing.findMany({ orderBy: { updatedAt: "desc" }, take: 8 }),
+  const db = getDb();
+  const count = async (status: string) =>
+    (await db.collection("listings").where("status", "==", status).count().get()).data().count;
+  const [published, drafts, errors, recentSnap] = await Promise.all([
+    count("published"),
+    count("draft"),
+    count("error"),
+    db.collection("listings").orderBy("updatedAt", "desc").limit(8).get(),
   ]);
+  const recent = recentSnap.docs.map((d) => ({ id: d.id, ...(d.data() as { title: string; status: string }) }));
   const stats = [
     { name: "Publicados", value: published },
     { name: "Rascunhos", value: drafts },
